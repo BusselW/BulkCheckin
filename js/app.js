@@ -333,8 +333,8 @@
             h('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap' } },
                 h('button', {
                     className: 'btn btn-secondary',
-                    onClick: () => loadContents('/sites/MulderT/Kennis/Algemeen/5. Bijzondere pleeglocaties', '/sites/MulderT/Kennis', false)
-                }, '📂 Bijzondere pleeglocaties'),
+                    onClick: () => loadContents('/sites/MulderT/Kennis/Algemeen/4. Pleeglocaties/Bijzondere pleeglocaties ZV', '/sites/MulderT/Kennis', false)
+                }, '📂 Bijzondere pleeglocaties ZV'),
                 h('button', {
                     className: 'btn btn-secondary',
                     onClick: () => loadContents('/sites/MulderT/Kennis/Verkeersborden/5. Schouwrapporten', '/sites/MulderT/Kennis', false)
