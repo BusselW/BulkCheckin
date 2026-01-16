@@ -136,7 +136,10 @@
                 throw new Error(`Metadata missing for file: ${file.Name}`);
             }
 
-            const itemUri = file.ListItemAllFields.__metadata.uri;
+            // Fix: Construct URI manually to handle special characters correctly
+            const safeUrl = file.ServerRelativeUrl.replace(/'/g, "''");
+            const endpoint = `${cleanUrl}/_api/web/GetFileByServerRelativeUrl('${safeUrl}')/ListItemAllFields`;
+            
             const itemType = file.ListItemAllFields.__metadata.type;
 
             const body = {
@@ -144,7 +147,7 @@
                 "Title": newTitle
             };
 
-            return this.fetchJSON(itemUri, "POST", body, digest, {
+            return this.fetchJSON(endpoint, "POST", body, digest, {
                 "X-HTTP-Method": "MERGE",
                 "If-Match": "*"
             });
