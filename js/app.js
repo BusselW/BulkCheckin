@@ -498,25 +498,45 @@
             currentPath && h(Breadcrumb, { 
                 path: currentPath,
                 onNavigate: (newPath) => {
-                    // Logic to determine if we are navigating UP the site hierarchy or DOWN into folders
-                    const cWeb = currentWeb.endsWith('/') ? currentWeb.slice(0, -1) : currentWeb;
-                    const nPath = newPath.endsWith('/') ? newPath.slice(0, -1) : newPath;
+                    // Normalize paths (ensure leading slash, no trailing slash)
+                    const formatPath = (p) => {
+                         if (!p) return "";
+                         let s = p.trim();
+                         if (!s.startsWith('/')) s = '/' + s;
+                         if (s.endsWith('/') && s.length > 1) s = s.slice(0, -1);
+                         return s.toLowerCase();
+                    };
 
-                    // 1. If hitting the exact Web URL, show libraries
-                    if (nPath.toLowerCase() === cWeb.toLowerCase()) {
-                        loadLibraries(nPath);
+                    const cWeb = formatPath(currentWeb);
+                    const nPath = formatPath(newPath);
+                    const rawNPath = newPath.trim().startsWith('/') ? newPath.trim() : '/' + newPath.trim();
+
+                    console.log(`Navigating: CurrWeb=${cWeb}, NewPath=${nPath}`);
+
+                    // 1. Same Level: Show Libraries
+                    if (nPath === cWeb) {
+                        loadLibraries(rawNPath);
                         return;
                     }
                     
-                    // 2. If the new path is physically SHORTER than current Web, we are likely jumping up to a parent site.
-                    //    Example: Current=/sites/A/B, New=/sites/A. This is a Site Switch.
-                    if (cWeb.toLowerCase().startsWith(nPath.toLowerCase()) && nPath.length < cWeb.length) {
-                        loadSubsites(nPath);
+                    // 2. Going UP (Parent Site)
+                    // If current web starts with new path, we are going up the tree.
+                    if (cWeb.startsWith(nPath)) {
+                        loadSubsites(rawNPath);
                         return;
                     }
 
-                    // 3. Otherwise, we are navigating inside the current web (folders/libs).
-                    loadContents(newPath, currentWeb, false);
+                    // 3. Going DOWN (Folder inside current web)
+                    // Only allowed if new path starts with current web
+                    if (nPath.startsWith(cWeb)) {
+                        loadContents(rawNPath, currentWeb, false);
+                        return;
+                    }
+
+                    // 4. Disjoint Jump (Unlikely in breadcrumb, but safe fallback)
+                    // Try to load as a subsite first (safer than folder)
+                    console.log("Disjoint path detected. Defaulting to Site load.");
+                    loadSubsites(rawNPath);
                 } 
             }),
             
