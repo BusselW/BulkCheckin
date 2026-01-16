@@ -497,7 +497,27 @@
             
             currentPath && h(Breadcrumb, { 
                 path: currentPath,
-                onNavigate: (newPath) => loadContents(newPath, currentWeb, false) 
+                onNavigate: (newPath) => {
+                    // Logic to determine if we are navigating UP the site hierarchy or DOWN into folders
+                    const cWeb = currentWeb.endsWith('/') ? currentWeb.slice(0, -1) : currentWeb;
+                    const nPath = newPath.endsWith('/') ? newPath.slice(0, -1) : newPath;
+
+                    // 1. If hitting the exact Web URL, show libraries
+                    if (nPath.toLowerCase() === cWeb.toLowerCase()) {
+                        loadLibraries(nPath);
+                        return;
+                    }
+                    
+                    // 2. If the new path is physically SHORTER than current Web, we are likely jumping up to a parent site.
+                    //    Example: Current=/sites/A/B, New=/sites/A. This is a Site Switch.
+                    if (cWeb.toLowerCase().startsWith(nPath.toLowerCase()) && nPath.length < cWeb.length) {
+                        loadSubsites(nPath);
+                        return;
+                    }
+
+                    // 3. Otherwise, we are navigating inside the current web (folders/libs).
+                    loadContents(newPath, currentWeb, false);
+                } 
             }),
             
             !loading && viewMode === 'sites' && renderSites(),

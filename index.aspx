@@ -338,16 +338,33 @@
         
         /* Modal Modern */
         .modal-overlay { 
-            background: rgba(15, 23, 42, 0.4); 
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.5); 
             backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
         }
         .modal-box { 
-            border: none;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); 
             padding: 32px;
             border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            animation: fadeIn 0.2s ease-out;
         }
-        .modal-title { font-size: 22px; margin-bottom: 16px; color: var(--text-main); }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .modal-title { font-size: 22px; margin-bottom: 16px; color: var(--text-main); margin-top: 0; }
+        .modal-text { color: var(--text-muted); margin-bottom: 24px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
 
         /* Tooltip CSS */
         .tooltip-container {
