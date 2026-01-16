@@ -191,54 +191,77 @@
             setMsg(`Inchecken van ${file.Name}...`);
             try {
                 await SPService.checkInFile(currentWeb, file.ServerRelativeUrl);
-                loadContents(currentPath, currentWeb, isRecursive);
+                
+                // Optimistically update UI to avoid full reload
+                setContents(prev => ({
+                    ...prev,
+                    files: prev.files.map(f => {
+                        if (f.ServerRelativeUrl === file.ServerRelativeUrl) {
+                            return { ...f, CheckOutType: 2, CheckedOutByUser: { Title: "" } };
+                        }
+                        return f;
+                    })
+                }));
+                
                 setMsg(`Succes: ${file.Name} ingecheckt.`);
             } catch (e) { setMsg(`Fout bij inchecken ${file.Name}: ${e.message}`); }
         };
 
+        // Helper for concurrent batch processing
+        const runBatchParams = async (items, label, fn) => {
+             setLoading(true);
+             setProgress({ current: 0, total: items.length, action: label, item: "Starten..." });
+             
+             let successCount = 0;
+             let index = 0;
+             let active = 0;
+             const MAX_CONCURRENCY = 3;
+
+             await new Promise(resolve => {
+                 const next = () => {
+                     // Finished
+                     if (index === items.length && active === 0) {
+                         resolve();
+                         return;
+                     }
+                     
+                     while (index < items.length && active < MAX_CONCURRENCY) {
+                         const file = items[index++];
+                         active++;
+                         
+                         setProgress(prev => ({ ...prev, item: file.Name }));
+                         
+                         fn(file)
+                             .then(() => successCount++)
+                             .catch(e => console.error(e))
+                             .finally(() => {
+                                 active--;
+                                 setProgress(prev => ({ ...prev, current: prev.current + 1 }));
+                                 next();
+                             });
+                     }
+                 };
+                 next();
+             });
+             
+             setProgress(null);
+             setLoading(false);
+             return successCount;
+        };
+
         const executeSyncTitles = async (toUpdate) => {
-            setLoading(true);
-            setProgress({ current: 0, total: toUpdate.length, action: "Titels Synchroniseren", item: "Starten..." });
-            
-            let successCount = 0;
-            for (let i = 0; i < toUpdate.length; i++) {
-                const file = toUpdate[i];
-                setProgress(prev => ({ ...prev, current: i, item: file.Name }));
-                
-                try {
-                    await SPService.updateFileTitle(currentWeb, file, file.Name);
-                    successCount++;
-                } catch(e) { console.error(e); }
-                
-                setProgress(prev => ({ ...prev, current: i + 1 }));
-            }
-            
-            setProgress(null);
-            setLoading(false);
-            setMsg(`Stap 1 Voltooid. Titels bijgewerkt voor ${successCount} bestanden.`);
+            const count = await runBatchParams(toUpdate, "Titels Synchroniseren", (file) => 
+                SPService.updateFileTitle(currentWeb, file, file.Name)
+            );
+            setMsg(`Stap 1 Voltooid. Titels bijgewerkt voor ${count} bestanden.`);
             loadContents(currentPath, currentWeb, isRecursive);
         };
 
         const executeBulkCheckIn = async (toCheckIn) => {
-            setLoading(true);
-            setProgress({ current: 0, total: toCheckIn.length, action: "Bulk Inchecken", item: "Starten..." });
-            
-            let successCount = 0;
-            for (let i = 0; i < toCheckIn.length; i++) {
-                const file = toCheckIn[i];
-                setProgress(prev => ({ ...prev, current: i, item: file.Name }));
-
-                try {
-                    await SPService.checkInFile(currentWeb, file.ServerRelativeUrl);
-                    successCount++;
-                } catch(e) { console.error(e); }
-                
-                setProgress(prev => ({ ...prev, current: i + 1 }));
-            }
-            
-            setProgress(null);
-            setLoading(false);
-            setMsg(`Stap 2 Voltooid. ${successCount} bestanden ingecheckt.`);
+            const count = await runBatchParams(toCheckIn, "Bulk Inchecken", (file) => 
+                SPService.checkInFile(currentWeb, file.ServerRelativeUrl)
+            );
+            setMsg(`Stap 2 Voltooid. ${count} bestanden ingecheckt.`);
             loadContents(currentPath, currentWeb, isRecursive);
         };
 
@@ -266,7 +289,22 @@
 
         // --- RENDER ---
 
+        const renderShortcuts = () => h('div', { className: 'card', style: { marginBottom: '20px' } },
+            h('h3', { className: 'card-title' }, "Snelle Navigatie"),
+            h('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap' } },
+                h('button', {
+                    className: 'btn btn-secondary',
+                    onClick: () => loadContents('/sites/MulderT/Kennis/Algemeen/5. Bijzondere pleeglocaties', '/sites/MulderT/Kennis', false)
+                }, '📂 Bijzondere pleeglocaties'),
+                h('button', {
+                    className: 'btn btn-secondary',
+                    onClick: () => loadContents('/sites/MulderT/Kennis/Verkeersborden/5. Schouwrapporten', '/sites/MulderT/Kennis', false)
+                }, '📂 Schouwrapporten')
+            )
+        );
+
         const renderSites = () => h('div', { className: 'section-container' },
+            renderShortcuts(),
             h('div', { className: 'card card-featured' },
                 h('div', null,
                     h('h2', { className: 'card-title' }, 'Huidige Site Inhoud'),

@@ -70,9 +70,11 @@
 
         async getFilesAndFolders(serverRelativeUrl, webUrl) {
             const cleanUrl = webUrl.endsWith('/') ? webUrl.slice(0, -1) : webUrl;
+            // Escape single quotes for OData string literal
+            const safeUrl = serverRelativeUrl.replace(/'/g, "''");
             // GetFolderByServerRelativeUrl endpoint
-            const endpoint = `${cleanUrl}/_api/web/GetFolderByServerRelativeUrl('${serverRelativeUrl}')/Files?$expand=ListItemAllFields,Author,CheckedOutByUser`;
-            const folderEndpoint = `${cleanUrl}/_api/web/GetFolderByServerRelativeUrl('${serverRelativeUrl}')/Folders`;
+            const endpoint = `${cleanUrl}/_api/web/GetFolderByServerRelativeUrl('${safeUrl}')/Files?$expand=ListItemAllFields,Author,CheckedOutByUser`;
+            const folderEndpoint = `${cleanUrl}/_api/web/GetFolderByServerRelativeUrl('${safeUrl}')/Folders`;
             
             const [files, folders] = await Promise.all([
                 this.fetchJSON(endpoint),
@@ -84,37 +86,46 @@
 
         /**
          * Recursively fetches all files starting from a folder.
-         * Crawls through subfolders sequentially to find all items.
+         * Optimized with concurrency to fetch multiple folders in parallel.
          */
         async getFilesRecursive(startPath, webUrl, onProgress) {
              const resultFiles = [];
-             
-             // Queue for folders to process (Breadth-First Search)
              const queue = [startPath];
-             
-             while(queue.length > 0) {
-                 const currentPath = queue.shift();
-                 
-                 try {
-                     // Reuse existing method to get contents of this level
-                     const data = await this.getFilesAndFolders(currentPath, webUrl);
-                     
-                     // Add files found
-                     resultFiles.push(...data.files);
-                     
-                     // Add subfolders to the queue to be processed
-                     data.folders.forEach(f => queue.push(f.ServerRelativeUrl));
-                     
-                     // Report progress back to UI (optional)
-                     if (onProgress) onProgress(resultFiles.length, queue.length);
-                     
-                 } catch (e) {
-                     console.error(`Failed to crawl ${currentPath}:`, e);
-                     // We continue even if one folder fails
-                 }
-             }
-             
-             return resultFiles;
+             const MAX_CONCURRENCY = 3;
+             let activeCount = 0;
+
+             return new Promise((resolve) => {
+                 const next = () => {
+                     // If nothing in queue and nothing active, we are done
+                     if (queue.length === 0 && activeCount === 0) {
+                         resolve(resultFiles);
+                         return;
+                     }
+
+                     // Launch new requests while we have capacity and items
+                     while (queue.length > 0 && activeCount < MAX_CONCURRENCY) {
+                         const currentPath = queue.shift();
+                         activeCount++;
+                         
+                         this.getFilesAndFolders(currentPath, webUrl)
+                             .then(data => {
+                                 resultFiles.push(...data.files);
+                                 data.folders.forEach(f => queue.push(f.ServerRelativeUrl));
+                                 if (onProgress) onProgress(resultFiles.length, queue.length);
+                             })
+                             .catch(e => {
+                                 console.error(`Failed to crawl ${currentPath}:`, e);
+                             })
+                             .finally(() => {
+                                 activeCount--;
+                                 next();
+                             });
+                     }
+                 };
+
+                 // Start the process
+                 next();
+             });
         },
 
         async updateFileTitle(webUrl, file, newTitle) {
@@ -142,7 +153,8 @@
         async checkInFile(webUrl, fileServerRelativeUrl) {
             const cleanUrl = webUrl.endsWith('/') ? webUrl.slice(0, -1) : webUrl;
             const digest = await this.getRequestDigest(webUrl);
-            const endpoint = `${cleanUrl}/_api/web/GetFileByServerRelativeUrl('${fileServerRelativeUrl}')/CheckIn(comment='Bulk Incheck Tool',checkintype=1)`;
+            const safeUrl = fileServerRelativeUrl.replace(/'/g, "''");
+            const endpoint = `${cleanUrl}/_api/web/GetFileByServerRelativeUrl('${safeUrl}')/CheckIn(comment='Bulk Incheck Tool',checkintype=1)`;
             return this.fetchJSON(endpoint, "POST", null, digest);
         }
     };
