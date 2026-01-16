@@ -30,6 +30,32 @@
         );
     };
 
+    // 0.1 Intro/Welcome Card
+    const IntroCard = () => {
+        return h('div', { className: 'card', style: { borderLeft: '5px solid #10b981', marginBottom: '24px' } },
+            h('h3', { className: 'card-title', style: { display: 'flex', alignItems: 'center', gap: '8px' } }, 
+                "👋 Welkom bij de Bulk Check-In Tool"
+            ),
+            h('p', { style: { marginBottom: '16px', color: '#475569' } }, 
+                "Deze tool helpt u om grote hoeveelheden documenten in één keer in te checken. Volg deze stappen:"
+            ),
+            h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' } },
+                h('div', { className: 'step-item' }, 
+                    h('strong', { style: { color: '#0f172a' } }, "1. Kies een Site"), 
+                    h('p', { style: { fontSize: '13px', margin: '4px 0 0 0', color: '#64748b' } }, "Navigeer naar de site waar de documenten staan.")
+                ),
+                h('div', { className: 'step-item' }, 
+                    h('strong', { style: { color: '#0f172a' } }, "2. Selecteer Bibliotheek"), 
+                    h('p', { style: { fontSize: '13px', margin: '4px 0 0 0', color: '#64748b' } }, "Kies de documentbibliotheek die u wilt beheren.")
+                ),
+                h('div', { className: 'step-item' }, 
+                    h('strong', { style: { color: '#0f172a' } }, "3. Bulk Acties"), 
+                    h('p', { style: { fontSize: '13px', margin: '4px 0 0 0', color: '#64748b' } }, "Gebruik de knoppen om titels te corrigeren en bestanden in te checken.")
+                )
+            )
+        );
+    };
+
     // 1. Modal Component
     const ConfirmModal = ({ config, onClose }) => {
         if (!config) return null;
@@ -303,6 +329,7 @@
 
         const renderShortcuts = () => h('div', { className: 'card', style: { marginBottom: '20px' } },
             h('h3', { className: 'card-title' }, "Snelle Navigatie"),
+            h('p', { className: 'card-subtitle', style: { marginBottom: '12px' } }, "Direct naar veelgebruikte mappen:"),
             h('div', { style: { display: 'flex', gap: '10px', flexWrap: 'wrap' } },
                 h('button', {
                     className: 'btn btn-secondary',
@@ -316,16 +343,20 @@
         );
 
         const renderSites = () => h('div', { className: 'section-container' },
+            h(IntroCard),
             renderShortcuts(),
             h('div', { className: 'card card-featured' },
                 h('div', null,
                     h('h2', { className: 'card-title' }, 'Huidige Site Inhoud'),
-                    h('p', { className: 'card-subtitle' }, `Bekijk bibliotheken in: ${currentWeb}`)
+                    h('p', { className: 'card-subtitle' }, `Bekijk alle documentbibliotheken die direct onder deze site (${currentWeb}) vallen.`)
                 ),
                 h('button', { className: 'btn btn-indigo', onClick: () => loadLibraries(currentWeb) }, 'Bekijk Bibliotheken Hier')
             ),
             h('div', null,
-                h('h2', { className: 'section-title' }, 'Subsites'),
+                h('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '16px' } },
+                    h('h2', { className: 'section-title', style: { margin: 0, fontSize: '20px' } }, 'Beschikbare Subsites'),
+                    h(HelpIcon, { text: 'Klik op een subsite om daarin verder te zoeken.' })
+                ),
                 sites.length === 0 
                     ? h('div', { className: 'empty-state' }, 'Geen subsites gevonden.')
                     : h('div', { className: 'grid-sites' },
