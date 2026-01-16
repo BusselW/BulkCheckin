@@ -46,10 +46,18 @@
 
             try {
                 const response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
+                
+                // Handle Authorization Errors Gracefully
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error("HTTP_UNAUTHORIZED");
+                }
+
                 if (!response.ok) throw new Error(response.statusText);
                 if (response.status === 204) return null; // No Content
                 return await response.json();
             } catch (error) {
+                // Return generic error or rethrow specific one
+                if (error.message === "HTTP_UNAUTHORIZED") throw error;
                 console.error("SP API Error:", error);
                 throw error;
             }
@@ -59,13 +67,23 @@
 
         async getSubsites(webUrl) {
             const cleanUrl = webUrl.endsWith('/') ? webUrl.slice(0, -1) : webUrl;
-            return this.fetchJSON(`${cleanUrl}/_api/web/webs?$select=Title,ServerRelativeUrl`);
+            try {
+                return await this.fetchJSON(`${cleanUrl}/_api/web/webs?$select=Title,ServerRelativeUrl`);
+            } catch (e) {
+                if (e.message === "HTTP_UNAUTHORIZED") return { d: { results: [] } };
+                throw e;
+            }
         },
 
         async getLibraries(webUrl) {
             const cleanUrl = webUrl.endsWith('/') ? webUrl.slice(0, -1) : webUrl;
-            // BaseTemplate 101 = Document Library
-            return this.fetchJSON(`${cleanUrl}/_api/web/lists?$filter=BaseTemplate eq 101&$select=Title,RootFolder/ServerRelativeUrl&$expand=RootFolder`);
+            try {
+                // BaseTemplate 101 = Document Library
+                return await this.fetchJSON(`${cleanUrl}/_api/web/lists?$filter=BaseTemplate eq 101&$select=Title,RootFolder/ServerRelativeUrl&$expand=RootFolder`);
+            } catch (e) {
+                if (e.message === "HTTP_UNAUTHORIZED") return { d: { results: [] } };
+                throw e;
+            }
         },
 
         async getFilesAndFolders(serverRelativeUrl, webUrl) {
@@ -76,12 +94,20 @@
             const endpoint = `${cleanUrl}/_api/web/GetFolderByServerRelativeUrl('${safeUrl}')/Files?$expand=ListItemAllFields,Author,CheckedOutByUser`;
             const folderEndpoint = `${cleanUrl}/_api/web/GetFolderByServerRelativeUrl('${safeUrl}')/Folders`;
             
-            const [files, folders] = await Promise.all([
-                this.fetchJSON(endpoint),
-                this.fetchJSON(folderEndpoint)
-            ]);
-            
-            return { files: files.d.results, folders: folders.d.results };
+            try {
+                const [files, folders] = await Promise.all([
+                    this.fetchJSON(endpoint),
+                    this.fetchJSON(folderEndpoint)
+                ]);
+                
+                return { files: files.d.results, folders: folders.d.results };
+            } catch (e) {
+                if (e.message === "HTTP_UNAUTHORIZED") {
+                    console.warn(`Access denied for ${serverRelativeUrl}, skipping.`);
+                    return { files: [], folders: [] };
+                }
+                throw e;
+            }
         },
 
         /**
