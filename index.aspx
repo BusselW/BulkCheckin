@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SP2019 Bulk Incheck Tool</title>
+    <link rel="icon" type="image/svg+xml" href="images/help.svg">
     
     <style>
         /* Base Variables (Modern Palette) */
@@ -95,7 +96,17 @@
             display: flex; justify-content: space-between; align-items: center; 
         }
         
-        .site-card { cursor: pointer; border-left: 5px solid #0ea5e9; /* Sky Blue */ }
+        /* Updated Site Card styles included within inline styles in JS, 
+           but adding hover state for footer here */
+        .site-card { 
+            cursor: default; /* Reset cursor since we handle it in children */
+            border-left: 5px solid #0ea5e9; 
+        }
+        .site-card-footer:hover {
+            background-color: #cbd5e1 !important; /* Slate 300 hover */
+            color: #0f172a !important;
+        }
+        
         .lib-card { cursor: pointer; border-left: 5px solid #8b5cf6; /* Violet */ }
         
         .card-title { font-size: 18px; font-weight: 600; margin: 0 0 6px 0; color: #1e293b; }
@@ -290,6 +301,72 @@
             border-radius: 16px;
         }
         .modal-title { font-size: 22px; margin-bottom: 16px; color: var(--text-main); }
+
+        /* Tooltip CSS */
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            vertical-align: middle;
+        }
+
+        .help-icon {
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center;
+            width: 18px; 
+            height: 18px; 
+            margin-left: 6px; 
+            cursor: help; 
+            color: var(--text-muted); 
+            opacity: 0.7; 
+            transition: all 0.2s;
+        }
+        
+        .help-icon:hover { 
+            opacity: 1; 
+            color: var(--primary); 
+            transform: scale(1.1);
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #1e293b; /* Slate 800 */
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 135%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s, bottom 0.2s;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.4;
+            pointer-events: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+            bottom: 125%;
+        }
+
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
 
 
     </style>

@@ -18,6 +18,18 @@
 
     // --- COMPONENTS ---
 
+    // 0. Help Icon Component
+    const HelpIcon = ({ text }) => {
+        return h('span', { className: 'tooltip-container' },
+            h('img', { 
+                src: 'images/help.svg', 
+                className: 'help-icon', 
+                alt: 'Help' 
+            }),
+            h('span', { className: 'tooltip-text' }, text)
+        );
+    };
+
     // 1. Modal Component
     const ConfirmModal = ({ config, onClose }) => {
         if (!config) return null;
@@ -319,9 +331,37 @@
                     : h('div', { className: 'grid-sites' },
                         sites.map(site => h('div', { 
                             key: site.ServerRelativeUrl, 
-                            className: 'card site-card', 
-                            onClick: () => loadLibraries(site.ServerRelativeUrl) 
-                        }, h('h3', { className: 'card-title' }, site.Title), h('p', { className: 'card-subtitle' }, site.ServerRelativeUrl), h('button', { className: 'btn-link', onClick: (e) => { e.stopPropagation(); loadSubsites(site.ServerRelativeUrl); } }, 'Bekijk Subsites')))
+                            className: 'card site-card',
+                            style: { padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '120px' }
+                        }, 
+                            // TOP 80% - Load Libraries
+                            h('div', { 
+                                style: { flex: '1', padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+                                onClick: () => loadLibraries(site.ServerRelativeUrl)
+                            },
+                                h('h3', { className: 'card-title', style: { marginBottom: '4px' } }, site.Title), 
+                                h('p', { className: 'card-subtitle' }, site.ServerRelativeUrl)
+                            ),
+                            
+                            // BOTTOM 20% - Load Subsites
+                            h('div', { 
+                                className: 'site-card-footer',
+                                style: { 
+                                    padding: '10px', 
+                                    background: '#f8fafc', 
+                                    borderTop: '1px solid #e2e8f0', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    color: '#64748b',
+                                    transition: 'background 0.2s'
+                                },
+                                onClick: (e) => { e.stopPropagation(); loadSubsites(site.ServerRelativeUrl); } 
+                            }, '📂 Bekijk Subsites')
+                        ))
                     )
             )
         );
@@ -355,22 +395,29 @@
                                 onChange: (e) => loadContents(currentPath, currentWeb, e.target.checked),
                                 style: { marginRight: '6px' }
                             }),
-                            h('span', { className: isRecursive ? 'font-bold text-blue-600' : '' }, 'Inclusief submappen')
+                            h('span', { className: isRecursive ? 'font-bold text-blue-600' : '' }, 'Inclusief submappen'),
+                            h(HelpIcon, { text: 'Indien aangevinkt, doorzoekt de tool ook alle onderliggende mappen. Dit duurt langer.' })
                         )
                     ),
                     
                     h('div', { style: { display: 'flex', gap: '10px' } },
-                        checkedOutCount > 0 && h('button', {
-                            className: 'btn btn-indigo',
-                            onClick: promptSyncTitles,
-                            disabled: loading
-                        }, `Stap 1: Titels Corrigeren (${checkedOutCount})`),
+                        checkedOutCount > 0 && h('div', { style: { display: 'flex', alignItems: 'center' } },
+                             h('button', {
+                                className: 'btn btn-indigo',
+                                onClick: promptSyncTitles,
+                                disabled: loading
+                            }, `Stap 1: Titels Corrigeren (${checkedOutCount})`),
+                            h(HelpIcon, { text: 'Kopieert de bestandsnaam naar het "Titel" veld. Dit is vaak een vereiste om te kunnen inchecken.' })
+                        ),
                         
-                        checkedOutCount > 0 && h('button', {
-                            className: 'btn btn-success',
-                            onClick: promptBulkCheckIn,
-                            disabled: loading
-                        }, `Stap 2: Alles Inchecken (${checkedOutCount})`)
+                        checkedOutCount > 0 && h('div', { style: { display: 'flex', alignItems: 'center' } },
+                             h('button', {
+                                className: 'btn btn-success',
+                                onClick: promptBulkCheckIn,
+                                disabled: loading
+                            }, `Stap 2: Alles Inchecken (${checkedOutCount})`),
+                            h(HelpIcon, { text: 'Checkt alle geselecteerde bestanden in één keer in (Major Version).' })
+                        )
                     )
                 ),
                 
@@ -403,7 +450,10 @@
         };
 
         return h('div', { className: 'app-container' },
-            h('h1', { className: 'app-title' }, 'Modulaire SP2019 Check-In Tool'),
+            h('div', { style: { display: 'flex', alignItems: 'center' } },
+                h('h1', { className: 'app-title' }, 'Modulaire SP2019 Check-In Tool'),
+                h(HelpIcon, { text: 'Deze tool helpt bij het beheren van documenten die "uitgecheckt" zijn blijven staan.' })
+            ),
             h('div', { className: 'context-bar' }, 'Huidige Web Context: ', h('span', { className: 'context-url' }, currentWeb)),
             
             // Progress Bar of Berichten
